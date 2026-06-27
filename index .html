@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Word Garden 🌸</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #f0fdf4 0%, #fdf2f8 50%, #eff6ff 100%);
+    min-height: 100vh;
+    padding: 16px;
+    color: #1a1a2e;
+  }
+  h1 {
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2d6a4f;
+    letter-spacing: -0.5px;
+    margin-bottom: 2px;
+  }
+  .subtitle { text-align: center; color: #74c69d; font-size: 0.85rem; margin-bottom: 16px; }
+  .scores-bar {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .score-box {
+    background: white;
+    border: 1.5px solid #d8f3dc;
+    border-radius: 12px;
+    padding: 8px 18px;
+    text-align: center;
+    min-width: 80px;
+  }
+  .score-label { font-size: 10px; color: #74c69d; text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+  .score-val { font-size: 1.4rem; font-weight: 700; color: #2d6a4f; }
+  .score-val.hi { color: #e8a838; }
+
+  .game-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .word-input-row {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 420px;
+    align-items: center;
+  }
+  #wordInput {
+    flex: 1;
+    padding: 10px 14px;
+    border: 2px solid #b7e4c7;
+    border-radius: 12px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    outline: none;
+    background: white;
+    color: #2d6a4f;
+    transition: border-color 0.2s;
+  }
+  #wordInput:focus { border-color: #52b788; }
+  #wordInput.shake { animation: shake 0.35s; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 60%{transform:translateX(6px)} }
+  #wordInput.glow { animation: glow 0.5s; }
+  @keyframes glow { 0%{box-shadow:0 0 0 0 #52b78880} 50%{box-shadow:0 0 0 10px #52b78830} 100%{box-shadow:0 0 0 0 #52b78800} }
+
+  .submit-btn {
+    background: #52b788;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    padding: 10px 18px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .submit-btn:hover { background: #40916c; }
+  .submit-btn:active { transform: scale(0.96); }
+
+  .tiles-tray {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 420px;
+    background: white;
+    border: 1.5px solid #d8f3dc;
+    border-radius: 16px;
+    padding: 12px;
+  }
+  .tile {
+    width: 44px; height: 44px;
+    background: linear-gradient(145deg, #b7e4c7, #95d5b2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.1rem; font-weight: 800;
+    color: #1b4332;
+    cursor: pointer;
+    border: 2px solid #74c69d;
+    transition: transform 0.12s, background 0.12s, opacity 0.15s;
+    user-select: none;
+    position: relative;
+  }
+  .tile:hover { transform: translateY(-3px); background: linear-gradient(145deg, #95d5b2, #74c69d); }
+  .tile.used { opacity: 0.35; cursor: default; pointer-events: none; }
+  .tile .pts { position: absolute; bottom: 2px; right: 3px; font-size: 8px; font-weight: 700; color: #40916c; }
+
+  .tile-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 420px;
+    justify-content: center;
+  }
+  .shuffle-btn {
+    background: white;
+    color: #52b788;
+    border: 2px solid #52b788;
+    border-radius: 12px;
+    padding: 7px 18px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .shuffle-btn:hover { background: #d8f3dc; }
+  .shuffle-btn:active { transform: scale(0.96); }
+  .shuffle-btn.spin .shuffle-icon { animation: spinOnce 0.4s ease; }
+  @keyframes spinOnce { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .shuffle-icon { display: inline-block; font-size: 1rem; }
+  .shuffle-count {
+    font-size: 10px;
+    color: #a8dabc;
+    background: #f0fdf4;
+    border-radius: 99px;
+    padding: 1px 7px;
+    font-weight: 700;
+  }
+
+  .msg-area {
+    min-height: 28px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: center;
+    color: #2d6a4f;
+  }
+  .msg-area.err { color: #e63946; }
+
+  .found-list {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    border: 1.5px solid #d8f3dc;
+    border-radius: 16px;
+    padding: 12px 14px;
+  }
+  .found-header { font-size: 11px; color: #74c69d; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px; }
+  .found-words { display: flex; flex-wrap: wrap; gap: 6px; }
+  .found-word {
+    background: #d8f3dc;
+    color: #1b4332;
+    font-size: 0.8rem;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: 1px;
+    animation: popIn 0.25s;
+  }
+  @keyframes popIn { 0%{transform:scale(0.5);opacity:0} 80%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
+  .found-word .fw-pts { color: #52b788; font-size: 9px; margin-left: 3px; }
+
+  .timer-bar-wrap { width: 100%; max-width: 420px; }
+  .timer-label { font-size: 11px; color: #74c69d; font-weight: 700; margin-bottom: 4px; }
+  .timer-track { background: #d8f3dc; border-radius: 999px; height: 8px; overflow: hidden; }
+  .timer-fill { height: 100%; background: linear-gradient(90deg, #52b788, #b7e4c7); border-radius: 999px; transition: width 1s linear, background 0.5s; }
+  .timer-fill.low { background: linear-gradient(90deg, #e63946, #ffd166); }
+
+  .new-game-btn {
+    background: white;
+    color: #2d6a4f;
+    border: 2px solid #52b788;
+    border-radius: 12px;
+    padding: 8px 22px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+  }
+  .new-game-btn:hover { background: #d8f3dc; }
+
+  .overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,50,30,0.45);
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+  }
+  .overlay.show { display: flex; }
+  .over-card {
+    background: white;
+    border-radius: 24px;
+    padding: 32px 28px;
+    text-align: center;
+    max-width: 320px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  .over-emoji { font-size: 3rem; margin-bottom: 8px; }
+  .over-title { font-size: 1.5rem; font-weight: 800; color: #2d6a4f; margin-bottom: 4px; }
+  .over-score { font-size: 2rem; font-weight: 800; color: #52b788; margin: 8px 0; }
+  .over-hi { font-size: 0.85rem; color: #e8a838; font-weight: 700; margin-bottom: 16px; }
+  .over-name-label { font-size: 0.85rem; color: #74c69d; font-weight: 600; margin-bottom: 6px; }
+  #playerName {
+    border: 2px solid #b7e4c7;
+    border-radius: 10px;
+    padding: 7px 12px;
+    font-size: 1rem;
+    width: 100%;
+    margin-bottom: 12px;
+    outline: none;
+    color: #2d6a4f;
+    font-weight: 600;
+  }
+  #playerName:focus { border-color: #52b788; }
+  .over-btns { display: flex; gap: 8px; }
+  .save-btn {
+    flex: 1;
+    background: #52b788;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .save-btn:hover { background: #40916c; }
+  .skip-btn {
+    flex: 1;
+    background: white;
+    color: #74c69d;
+    border: 2px solid #d8f3dc;
+    border-radius: 10px;
+    padding: 10px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .skip-btn:hover { background: #f0fdf4; }
+
+  .leaderboard {
+    width: 100%;
+    max-width: 420px;
+    background: white;
+    border: 1.5px solid #d8f3dc;
+    border-radius: 16px;
+    padding: 12px 14px;
+  }
+  .lb-header { font-size: 11px; color: #e8a838; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 8px; }
+  .lb-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid #f0fdf4; }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-rank { font-size: 12px; color: #74c69d; font-weight: 800; width: 20px; }
+  .lb-name { flex: 1; font-size: 0.88rem; font-weight: 700; color: #2d6a4f; }
+  .lb-score { font-size: 0.88rem; font-weight: 800; color: #e8a838; }
+  .lb-empty { font-size: 0.82rem; color: #a8dabc; text-align: center; padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<h1>🌸 Word Garden</h1>
+<p class="subtitle">Spell words using the tiles below!</p>
+
+<div class="scores-bar">
+  <div class="score-box"><div class="score-label">Score</div><div class="score-val" id="scoreDis">0</div></div>
+  <div class="score-box"><div class="score-label">Words</div><div class="score-val" id="wordsDis">0</div></div>
+  <div class="score-box"><div class="score-label">Best</div><div class="score-val hi" id="hiDis">0</div></div>
+</div>
+
+<div class="game-area">
+  <div class="timer-bar-wrap">
+    <div class="timer-label" id="timerLabel">⏱ 90s</div>
+    <div class="timer-track"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
+  </div>
+
+  <div class="tiles-tray" id="tilesTray"></div>
+
+  <div class="tile-actions">
+    <button class="shuffle-btn" id="shuffleBtn" onclick="shuffleTiles()">
+      <span class="shuffle-icon" id="shuffleIcon">🔀</span>
+      Fresh tiles
+      <span class="shuffle-count" id="shuffleCount">3 left</span>
+    </button>
+  </div>
+
+  <div class="word-input-row">
+    <input type="text" id="wordInput" maxlength="10" placeholder="TYPE OR CLICK" autocomplete="off" autocorrect="off" spellcheck="false" />
+    <button class="submit-btn" onclick="submitWord()">✓</button>
+  </div>
+
+  <div class="msg-area" id="msg"></div>
+
+  <div class="found-list">
+    <div class="found-header">Found words</div>
+    <div class="found-words" id="foundWords"><span style="font-size:0.8rem;color:#a8dabc">None yet — go!</span></div>
+  </div>
+
+  <div class="leaderboard" id="lbSection">
+    <div class="lb-header">🏆 High scores</div>
+    <div id="lbBody"><div class="lb-empty">No scores yet</div></div>
+  </div>
+
+  <button class="new-game-btn" onclick="newGame()">🌱 New Game</button>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="over-card">
+    <div class="over-emoji" id="overEmoji">🌸</div>
+    <div class="over-title">Time's up!</div>
+    <div style="font-size:0.88rem;color:#74c69d;margin-bottom:4px">Your score</div>
+    <div class="over-score" id="overScore">0</div>
+    <div class="over-hi" id="overHi"></div>
+    <div class="over-name-label">Save your score</div>
+    <input type="text" id="playerName" maxlength="12" placeholder="Your name" />
+    <div class="over-btns">
+      <button class="save-btn" onclick="saveScore()">Save 🌟</button>
+      <button class="skip-btn" onclick="closeOverlay()">Skip</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const LETTER_SCORES = {A:1,E:1,I:1,O:1,U:1,L:1,N:1,S:1,T:1,R:1,D:2,G:2,B:3,C:3,M:3,P:3,F:4,H:4,V:4,W:4,Y:4,K:5,J:8,X:8,Q:10,Z:10};
+const LETTER_FREQ = "AAAAAAAABBCCDDDDEEEEEEEEEEEEFFFGGGHHHHIIIIIIIIJKLLLLMMNNNNNNOOOOOOOOPPQRRRRRRSSSSTTTTTTTUUUUVVWWXYYZ".split('');
+
+const WORDS = new Set(["ACE","ACT","ADD","AGE","AGO","AID","AIM","AIR","ALL","AND","ANT","APE","APT","ARC","ARE","ARK","ARM","ART","ASH","ASK","ATE","AWE","AXE","AYE","BAD","BAG","BAN","BAR","BAT","BED","BEG","BET","BIG","BIT","BOW","BOX","BOY","BUD","BUG","BUN","BUS","BUT","BUY","CAB","CAN","CAP","CAR","CAT","COB","COD","COP","COT","COW","CRY","CUB","CUP","CUR","CUT","DAB","DAD","DAM","DAY","DEN","DEW","DID","DIG","DIM","DIP","DOC","DOE","DOG","DOT","DRY","DUB","DUG","DUN","DUO","DYE","EAR","EAT","EEL","EGG","ELF","ELK","ELM","EMU","END","ERA","EVE","EWE","EYE","FAD","FAN","FAR","FAT","FAX","FED","FEW","FIG","FIN","FIT","FIX","FLY","FOB","FOG","FOP","FOR","FOX","FRY","FUN","FUR","GAB","GAG","GAP","GAS","GEL","GEM","GET","GOD","GOT","GUM","GUN","GUT","GUY","GYM","HAD","HAM","HAS","HAT","HAY","HEM","HEN","HER","HIM","HIP","HIS","HIT","HOB","HOG","HOP","HOT","HOW","HUB","HUG","HUM","HUT","ICE","ILL","IMP","INK","INN","ION","IRE","IVY","JAB","JAG","JAM","JAR","JAW","JAY","JET","JIG","JOB","JOG","JOT","JOY","JUG","JUT","KEG","KID","KIT","LAB","LAD","LAG","LAP","LAW","LAX","LAY","LED","LEG","LET","LID","LIE","LIP","LIT","LOG","LOT","LOW","LUG","MAD","MAN","MAP","MAR","MAT","MAW","MAY","MEN","MET","MID","MIX","MOB","MOD","MOM","MOP","MOW","MUD","MUG","NAB","NAG","NAP","NAY","NET","NEW","NIL","NIT","NOB","NOD","NOR","NOT","NOW","NUB","NUN","NUT","OAK","OAR","OAT","ODD","OFT","OIL","OLD","ONE","ORB","ORE","OWE","OWL","OWN","PAD","PAL","PAN","PAP","PAR","PAT","PAW","PAY","PEA","PEG","PEN","PEP","PER","PET","PIE","PIG","PIN","PIT","PLY","POD","POP","POT","POW","PRY","PUB","PUG","PUN","PUP","PUS","PUT","RAG","RAN","RAP","RAT","RAW","RAY","RED","REF","RIB","RID","RIG","RIM","RIP","ROB","ROD","ROT","ROW","RUB","RUG","RUM","RUN","RUT","SAC","SAD","SAG","SAP","SAT","SAW","SAY","SEA","SET","SEW","SHY","SIP","SIR","SIS","SIT","SIX","SKI","SKY","SLY","SOB","SOD","SON","SOP","SOT","SOW","SOY","SPA","SPY","STY","SUB","SUM","SUN","SUP","TAB","TAD","TAN","TAP","TAR","TAX","TEA","TEN","THE","TIE","TIN","TIP","TOE","TON","TOO","TOP","TOT","TOW","TOY","TUB","TUG","TUN","TWO","URN","USE","VAN","VAT","VIA","VIE","VOW","WAD","WAG","WAR","WAS","WAX","WAY","WEB","WED","WET","WHO","WHY","WIG","WIN","WIT","WOE","WOK","WON","WOO","WOW","YAK","YAM","YAP","YEW","YOU","ZAP","ZEN","ZIT","ABLE","ACID","AGED","ALSO","ARCH","AREA","ARMY","ATOM","AUNT","BACK","BADE","BAIL","BAIT","BAKE","BALD","BALE","BALL","BAND","BANE","BANG","BANK","BARE","BARK","BARN","BASE","BASH","BATH","BEAD","BEAM","BEAN","BEAR","BEAT","BEEN","BEER","BEET","BELL","BELT","BEND","BEST","BIKE","BILL","BIND","BIRD","BITE","BLOT","BLOW","BLUE","BLUR","BOAT","BODY","BOLD","BOLT","BOND","BONE","BOOK","BOOM","BOOT","BORE","BORN","BOSS","BOTH","BOUT","BOWL","BROW","BULL","BURN","BURP","BURY","BUSH","BUSY","CAFE","CAGE","CAKE","CALL","CALM","CAMP","CANE","CAPE","CARE","CART","CASE","CASH","CAST","CAVE","CELL","CENT","CHAT","CHIP","CHOP","CLAM","CLAP","CLAW","CLAY","CLIP","CLUB","CLUE","COAT","CODE","COIL","COIN","COLD","COME","COOK","COOL","CORD","CORE","CORN","COST","COZY","CRAM","CREW","CROP","CROW","CURE","CURL","CUTE","DAMP","DARE","DARK","DART","DASH","DATA","DATE","DAWN","DAYS","DEAD","DEAF","DEAL","DEAR","DEBT","DECK","DEED","DEEP","DEFT","DESK","DIAL","DICE","DIET","DIRT","DISH","DISK","DIVE","DOCK","DOME","DONE","DOSE","DOVE","DOWN","DRAG","DRAW","DRIP","DROP","DRUM","DUAL","DUDE","DULL","DUMB","DUNE","DUSK","DUST","EACH","EARL","EARN","EASE","EAST","EDGE","EMIT","EPIC","EVEN","EVER","EVIL","EXAM","FACE","FACT","FAIL","FAIR","FAKE","FALL","FAME","FAST","FATE","FAWN","FAZE","FEAT","FEED","FEEL","FEET","FELL","FELT","FERN","FILE","FILL","FILM","FIND","FINE","FIRE","FIRM","FISH","FIST","FIVE","FLAG","FLAT","FLAW","FLEA","FLED","FLEW","FLEX","FLIP","FLOW","FOAM","FOLD","FOLK","FOND","FONT","FOOD","FOOL","FOOT","FORD","FORE","FORK","FORM","FORT","FOUL","FOUR","FREE","FROG","FROM","FUEL","FULL","FUND","FUSE","FUZZ","GAIN","GALE","GAME","GAVE","GAZE","GEAR","GENE","GERM","GIFT","GILL","GIVE","GLAD","GLEE","GLOB","GLOW","GLUE","GOAL","GOAT","GOLD","GOLF","GONE","GOOD","GORE","GOWN","GRAB","GRAM","GRAY","GREW","GRIN","GRIP","GRIT","GROW","GULF","GULP","GUST","HACK","HAIL","HAIR","HALF","HALL","HALT","HAND","HANG","HARD","HARE","HARM","HAVE","HAWK","HEAD","HEAL","HEAP","HEAR","HEAT","HEEL","HEIR","HELD","HELM","HELP","HERB","HERE","HERO","HIDE","HIGH","HIKE","HILL","HINT","HIRE","HOLD","HOLE","HOME","HOOD","HOOK","HOPE","HORN","HOSE","HOST","HOUR","HUGE","HULL","HUNG","HUNT","HURT","HUSK","HYMN","ICON","IDEA","IDLE","INCH","INTO","IRON","ISLE","ITCH","JADE","JAIL","JEST","JOIN","JOKE","JUMP","JUNE","JUST","KEEN","KEEP","KICK","KILL","KING","KISS","KNIT","KNOB","KNOW","LACK","LADY","LAID","LAKE","LAMP","LAND","LANE","LASH","LAST","LATE","LAWN","LAZY","LEAD","LEAF","LEAN","LEAP","LEND","LESS","LICK","LIFE","LIFT","LIKE","LIME","LINE","LINK","LION","LIST","LIVE","LOAD","LOAN","LOCK","LOFT","LONE","LONG","LOOK","LOOM","LOON","LOOP","LORD","LORE","LOSE","LOSS","LOST","LOUD","LOVE","LUCK","LURE","LURK","LUSH","LUST","MADE","MAIL","MAIN","MAKE","MALE","MALL","MALT","MANY","MARE","MARK","MARS","MAST","MATH","MAZE","MEAN","MEAT","MELT","MEMO","MERE","MESH","MILD","MILE","MILK","MILL","MIME","MIND","MINE","MINT","MISS","MIST","MOAT","MODE","MOLE","MORE","MOSS","MOST","MOTE","MOTH","MUCH","MULE","MUSE","MUST","MYTH","NAIL","NAME","NEAR","NECK","NEED","NEST","NEWS","NEXT","NICE","NINE","NODE","NONE","NOON","NOPE","NORM","NOSE","NOTE","OATH","OBOE","ONCE","ONLY","OPEN","OVEN","OVER","PACE","PACK","PAGE","PAIN","PAIR","PALM","PARK","PART","PAST","PATH","PAVE","PEAK","PEAR","PEEL","PEER","PEST","PICK","PINE","PINK","PIPE","PLAN","PLAY","PLEA","PLOD","PLOT","PLOW","PLUS","POEM","POET","POLE","POLL","POND","PONY","POOL","PORK","PORT","POSE","POUR","PRAY","PREY","PROP","PULL","PUMP","PURE","PUSH","RACE","RACK","RAID","RAIL","RAIN","RAKE","RAMP","RANG","RANK","RANT","RASP","RATE","READ","REAL","REAP","REEL","RENT","REST","RICE","RICH","RIDE","RIFE","RING","RINK","RIOT","RIPE","RISE","RISK","ROAD","ROAM","ROAR","ROCK","ROLE","ROLL","ROOF","ROOM","ROOT","ROPE","ROSE","ROVE","RUDE","RUIN","RULE","RUMP","RUSE","RUSH","RUST","SAFE","SAGE","SAID","SAIL","SAKE","SALT","SAME","SAND","SANG","SANK","SASH","SAVE","SCAN","SCAR","SEAL","SEAM","SEED","SEEK","SEEM","SEEN","SELL","SEND","SENT","SHED","SHIP","SHOE","SHOP","SHOT","SHOW","SIDE","SIGH","SILK","SING","SINK","SIRE","SIZE","SKEW","SLAM","SLAP","SLIM","SLIP","SLOT","SLOW","SMUG","SNAG","SNAP","SNIP","SNOB","SNOW","SOAK","SOAP","SOAR","SOCK","SOIL","SOLE","SOME","SONG","SOON","SORT","SOUL","SOUP","SOUR","SPAN","SPIN","SPIT","SPOT","SPUR","STAB","STAG","STAR","STAY","STEM","STEP","STEW","STIR","STOP","STUB","STUN","SUCH","SUIT","SULK","SWAM","SWAN","SWAP","SWAT","SWIM","TALE","TALK","TALL","TAME","TARP","TASK","TAUT","TEAM","TEAR","TELL","TEND","TENT","TEST","THAN","THAT","THEM","THEN","THEY","THIN","THIS","THOU","THUD","THUS","TICK","TIDE","TIED","TILL","TILT","TIME","TOAD","TOLD","TOLL","TOMB","TONE","TOOL","TORN","TOSS","TOIL","TOUR","TOWN","TRAP","TREE","TRIM","TRIP","TROT","TRUE","TUCK","TUFT","TUNE","TURF","TUSK","TWIN","UGLY","UNDO","UNIT","UPON","URGE","VAIN","VALE","VARY","VEIL","VEIN","VEST","VILE","VINE","VOID","VOLT","WADE","WAIL","WAKE","WALK","WALL","WAND","WANT","WARD","WARM","WARY","WASH","WAVE","WEAK","WEAN","WEEP","WELD","WELL","WENT","WERE","WHAM","WHAT","WHEN","WHIM","WHIP","WICK","WIDE","WIFE","WILD","WILL","WILT","WIND","WINE","WING","WINK","WIRE","WISE","WISH","WITH","WOKE","WOOF","WORD","WORE","WORK","WORM","WORN","WOVE","WRAP","WREN","YAWN","YEAR","YELL","YOUR","ZERO","ZONE","ZOOM","ABOUT","ABOVE","ABUSE","ACHED","ACORN","ADDED","ADULT","AFTER","AGAIN","AGATE","AGILE","AISLE","ALARM","ALBUM","ALERT","ALGAE","ALIKE","ALIVE","ALOFT","ALONE","ALONG","ANGEL","ANGER","ANGLE","ANGRY","ANNEX","ANVIL","APART","APPLE","APPLY","ARENA","ARISE","ARRAY","ASIDE","ATLAS","ATTIC","AUDIO","AUDIT","AVOID","AWAKE","AWARD","AWARE","AWFUL","BADGE","BADLY","BAGEL","BANJO","BARGE","BATCH","BEACH","BEARD","BEAST","BEGAN","BEGIN","BEING","BELOW","BENCH","BERRY","BIRTH","BISON","BLAST","BLAZE","BLEAK","BLEND","BLESS","BLOCK","BLOOD","BLOOM","BLOWN","BLUES","BLUNT","BOARD","BOOST","BOOTH","BOXER","BRAID","BRAIN","BRAND","BRAVE","BREAD","BREAK","BREED","BRIDE","BRIEF","BRINE","BRISK","BROOK","BROOM","BROWN","BRUSH","BUILD","BUILT","BULGE","CHALK","CHANT","CHAOS","CHARM","CHART","CHASE","CHEAP","CHEAT","CHEEK","CHEER","CHESS","CHEST","CHILD","CHOIR","CHORD","CHOSE","CIVIL","CLAIM","CLANK","CLASS","CLING","CLOCK","CLONE","CLOSE","CLOTH","CLOUD","COACH","COLOR","COMET","COUNT","COURT","CRAFT","CRANE","CRASH","CRAVE","CRAWL","CRAZY","CREEK","CRIME","CRISP","CROSS","CROWD","CROWN","CRUEL","CRUSH","CRUST","DAILY","DAISY","DANCE","DATUM","DEALT","DEATH","DEBUT","DECOY","DEITY","DELAY","DELTA","DENSE","DEPTH","DERBY","DEVIL","DIGIT","DISCO","DODGE","DOING","DOUBT","DOUGH","DRAFT","DRAIN","DRAWL","DREAM","DRILL","DRINK","DRIVE","DRONE","DROOP","DROVE","DROWN","DWARF","EAGLE","EARLY","EARTH","EIGHT","ELITE","EMBER","EMPTY","ENEMY","ENJOY","ENTER","ENTRY","EQUAL","EVERY","EXERT","EXILE","EXTRA","FABLE","FAITH","FATAL","FAVOR","FEAST","FEVER","FIBER","FIELD","FIFTH","FIFTY","FLAIR","FLAME","FLARE","FLASH","FLASK","FLESH","FLOAT","FLOCK","FLOOD","FLOOR","FLOSS","FLOUR","FLUTE","FOCUS","FORCE","FORTH","FORUM","FOUND","FRAUD","FRESH","FRUIT","FULLY","FUNGI","FUNNY","GHOST","GIANT","GIVEN","GLAND","GLASS","GLAZE","GLIDE","GLINT","GLOOM","GLORY","GNOME","GORGE","GRAFT","GRAND","GRANT","GRAPE","GRASP","GRASS","GRAVE","GRAZE","GREED","GREET","GROAN","GROIN","GROOM","GROSS","GROUP","GROUT","GROVE","GROWL","GUILD","GUISE","GUSTO","HAPPY","HARSH","HASTE","HAVEN","HEART","HEDGE","HEFTY","HEIST","HENCE","HINGE","HIPPO","HOARD","HOBBY","HONOR","HOTEL","HOUND","HOUSE","HUMAN","HUMID","HURRY","HYENA","IMAGE","INDEX","INNER","INPUT","INTER","INTRO","ISSUE","JEWEL","JUDGE","JUICE","JUICY","KARMA","KAYAK","KITTY","KNIFE","KNOCK","KOALA","LABEL","LANCE","LARGE","LARVA","LASER","LATER","LEAST","LEAVE","LEGAL","LEMON","LEVEL","LIGHT","LIMIT","LINEN","LIVER","LOFTY","LOGIC","LOTUS","LOVER","LOWER","LUCKY","LUNAR","LUNCH","LYRIC","MAGIC","MAJOR","MANOR","MAPLE","MARCH","MATCH","MAYOR","MEDIA","MERCY","MERGE","MERIT","MICRO","MIGHT","MIRTH","MIXER","MONEY","MONTH","MORAL","MOUNT","MOUSE","MOUTH","MOVIE","MUSIC","NAIVE","NICHE","NIGHT","NOBLE","NOISE","NORTH","NOTCH","NOVEL","OASIS","OCEAN","OFFER","OFTEN","OLIVE","ONION","OPERA","ORBIT","ORDER","OTTER","OUTER","OWNER","OXIDE","OZONE","PANIC","PANSY","PAPER","PATCH","PAUSE","PEACE","PEACH","PEARL","PERCH","PHASE","PHONE","PHOTO","PIANO","PILOT","PINCH","PIXEL","PIZZA","PLACE","PLAIN","PLANE","PLANT","PLATE","PLAZA","PLUCK","PLUMB","PLUME","PLUNK","POINT","POLAR","PORCH","POUCH","POUND","POWER","PRESS","PRICE","PRIDE","PRIME","PRINT","PRIOR","PRIZE","PROBE","PROOF","PROSE","PROVE","PULSE","PUNCH","PUPIL","PURSE","QUEEN","QUERY","QUEST","QUICK","QUIET","QUOTA","QUOTE","RAVEN","REACH","REALM","REBEL","RECAP","RESIN","RIDGE","RIGHT","RISKY","RIVAL","RIVER","ROBOT","ROUND","ROUTE","ROVER","RURAL","SADLY","SCALP","SCENE","SCONE","SCOPE","SCORE","SCOUT","SCREW","SENSE","SEVEN","SHADE","SHAKE","SHALL","SHAME","SHAPE","SHARE","SHARK","SHARP","SHEEN","SHEET","SHELF","SHELL","SHIFT","SHIRT","SHORE","SHORT","SHOUT","SIGHT","SILLY","SINCE","SIXTH","SIXTY","SKILL","SKULL","SLATE","SLAVE","SLICE","SLIDE","SLIME","SLOPE","SLOTH","SMALL","SMART","SMEAR","SMELL","SMILE","SMOKE","SNAIL","SNAKE","SOLAR","SOLID","SOLVE","SPACE","SPARK","SPAWN","SPEAK","SPEAR","SPECK","SPEED","SPELL","SPEND","SPICE","SPILL","SPOKE","SPOOK","SPOON","SQUAD","SQUID","STACK","STAIN","STAIR","STAKE","STALE","STALL","STAMP","STAND","STANK","STARK","STATE","STEAD","STEAM","STEEL","STEEP","STEER","STING","STINK","STOMP","STONE","STOOL","STORE","STORM","STORY","STRAP","STRAW","STRAY","STUDY","STUMP","STYLE","SUGAR","SUITE","SUNNY","SUPER","SURGE","SWAMP","SWEAR","SWEAT","SWEEP","SWEET","SWELL","SWIFT","SWIPE","SWIRL","SWORD","SYRUP","TABLE","TALON","TASTE","TEACH","TEETH","THEME","THERE","THICK","THING","THINK","THORN","THREE","THREW","THROW","THUMB","TIGER","TIGHT","TIRED","TITAN","TOAST","TOKEN","TOTAL","TOUGH","TOWEL","TOWER","TOXIC","TRACK","TRADE","TRAIL","TRAIN","TRAIT","TRASH","TREAD","TREND","TRIAL","TRICK","TRIED","TROOP","TROUT","TRUCK","TRULY","TRUNK","TRUST","TRUTH","TUTOR","TWIRL","TWIST","ULTRA","UNDER","UNION","UNTIL","UPPER","UPSET","URBAN","USUAL","UTTER","VALID","VALUE","VALVE","VAPOR","VIDEO","VIGOR","VIOLA","VISIT","VISOR","VISTA","VITAL","VIVID","VOCAL","VOICE","VOTER","VOWEL","WAIST","WALTZ","WATCH","WATER","WEIGH","WEIRD","WHALE","WHEAT","WHEEL","WHERE","WHICH","WHILE","WHITE","WHOLE","WHOSE","WIDER","WITCH","WOMEN","WORLD","WORRY","WORTH","WOULD","WOUND","WRITE","WRONG","YEAST","YIELD","YOUNG","YOURS","YOUTH","ZONAL"]);
+
+const TOTAL_TIME = 90;
+const MAX_SHUFFLES = 3;
+let tiles = [], usedTiles = new Set(), score = 0, wordCount = 0, foundWords = [];
+let hiScore = 0, timeLeft = TOTAL_TIME, timer = null, gameActive = false;
+let highScores = JSON.parse(localStorage.getItem('wg_scores') || '[]');
+let shufflesLeft = MAX_SHUFFLES;
+
+function makeTiles() {
+  const pool = [...LETTER_FREQ];
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  tiles = pool.slice(0, 14).map(l => ({ letter: l, id: Math.random() }));
+}
+
+function renderTiles() {
+  const tray = document.getElementById('tilesTray');
+  tray.innerHTML = '';
+  tiles.forEach((t, i) => {
+    const el = document.createElement('div');
+    el.className = 'tile' + (usedTiles.has(i) ? ' used' : '');
+    el.innerHTML = t.letter + `<span class="pts">${LETTER_SCORES[t.letter] || 1}</span>`;
+    el.onclick = () => clickTile(i);
+    tray.appendChild(el);
+  });
+}
+
+function clickTile(i) {
+  if (!gameActive || usedTiles.has(i)) return;
+  const inp = document.getElementById('wordInput');
+  inp.value += tiles[i].letter;
+  usedTiles.add(i);
+  renderTiles();
+}
+
+function shuffleTiles() {
+  if (!gameActive || shufflesLeft <= 0) return;
+  shufflesLeft--;
+  usedTiles.clear();
+  document.getElementById('wordInput').value = '';
+  makeTiles();
+  renderTiles();
+  updateShuffleBtn();
+  const btn = document.getElementById('shuffleBtn');
+  const icon = document.getElementById('shuffleIcon');
+  btn.classList.add('spin');
+  icon.classList.add('spin');
+  setTimeout(() => { btn.classList.remove('spin'); icon.classList.remove('spin'); }, 400);
+  showMsg(shufflesLeft === 0 ? 'Last shuffle used!' : `Fresh tiles! ${shufflesLeft} left 🌿`, false);
+}
+
+function updateShuffleBtn() {
+  const btn = document.getElementById('shuffleBtn');
+  const cnt = document.getElementById('shuffleCount');
+  cnt.textContent = `${shufflesLeft} left`;
+  if (shufflesLeft <= 0) {
+    btn.style.opacity = '0.4';
+    btn.style.cursor = 'default';
+    btn.style.pointerEvents = 'none';
+  } else {
+    btn.style.opacity = '1';
+    btn.style.cursor = 'pointer';
+    btn.style.pointerEvents = 'auto';
+  }
+}
+
+function submitWord() {
+  if (!gameActive) return;
+  const inp = document.getElementById('wordInput');
+  const word = inp.value.toUpperCase().trim();
+  if (word.length < 3) { showMsg('At least 3 letters!', true); bounce(); return; }
+  if (foundWords.includes(word)) { showMsg('Already found that one!', true); bounce(); return; }
+  if (!WORDS.has(word)) { showMsg('Not a valid word 🌿', true); bounce(); return; }
+  const avail = [...tiles];
+  let valid = true;
+  for (const l of word.split('')) {
+    const idx = avail.findIndex(t => t.letter === l);
+    if (idx === -1) { valid = false; break; }
+    avail.splice(idx, 1);
+  }
+  if (!valid) { showMsg("Can't make that from your tiles!", true); bounce(); return; }
+  let pts = word.split('').reduce((s, l) => s + (LETTER_SCORES[l] || 1), 0);
+  if (word.length >= 6) pts = Math.floor(pts * 1.5);
+  if (word.length >= 8) pts = Math.floor(pts * 2);
+  score += pts;
+  wordCount++;
+  foundWords.push(word);
+  if (score > hiScore) hiScore = score;
+  updateDisplay();
+  showMsg(`+${pts} pts — ${getEmoji(word.length)}`, false);
+  addFoundWord(word, pts);
+  inp.value = '';
+  usedTiles.clear();
+  inp.classList.add('glow');
+  setTimeout(() => inp.classList.remove('glow'), 500);
+  renderTiles();
+}
+
+function getEmoji(len) {
+  if (len >= 8) return '🌺 Amazing!';
+  if (len >= 6) return '🌸 Lovely!';
+  if (len >= 5) return '🌻 Nice!';
+  return '🌿 Good!';
+}
+
+function addFoundWord(word, pts) {
+  const fw = document.getElementById('foundWords');
+  if (fw.querySelector('span[style]')) fw.innerHTML = '';
+  const el = document.createElement('span');
+  el.className = 'found-word';
+  el.innerHTML = word + `<span class="fw-pts">+${pts}</span>`;
+  fw.prepend(el);
+}
+
+function updateDisplay() {
+  document.getElementById('scoreDis').textContent = score;
+  document.getElementById('wordsDis').textContent = wordCount;
+  document.getElementById('hiDis').textContent = hiScore;
+}
+
+function showMsg(text, err) {
+  const el = document.getElementById('msg');
+  el.textContent = text;
+  el.className = 'msg-area' + (err ? ' err' : '');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = ''; el.className = 'msg-area'; }, 2200);
+}
+
+function bounce() {
+  const inp = document.getElementById('wordInput');
+  inp.classList.add('shake');
+  setTimeout(() => inp.classList.remove('shake'), 400);
+}
+
+function startTimer() {
+  timeLeft = TOTAL_TIME;
+  clearInterval(timer);
+  timer = setInterval(() => {
+    timeLeft--;
+    const pct = (timeLeft / TOTAL_TIME) * 100;
+    const fill = document.getElementById('timerFill');
+    fill.style.width = pct + '%';
+    fill.className = 'timer-fill' + (timeLeft < 20 ? ' low' : '');
+    document.getElementById('timerLabel').textContent = `⏱ ${timeLeft}s`;
+    if (timeLeft <= 0) { clearInterval(timer); endGame(); }
+  }, 1000);
+}
+
+function endGame() {
+  gameActive = false;
+  document.getElementById('overScore').textContent = score;
+  const isHi = score > 0 && (highScores.length < 5 || score > highScores[highScores.length - 1]?.score);
+  document.getElementById('overHi').textContent = isHi ? '🌟 New high score!' : '';
+  document.getElementById('overEmoji').textContent = score >= 50 ? '🌺' : score >= 20 ? '🌸' : '🌱';
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('playerName').focus();
+}
+
+function saveScore() {
+  const name = document.getElementById('playerName').value.trim() || 'Gardener';
+  highScores.push({ name, score });
+  highScores.sort((a, b) => b.score - a.score);
+  highScores = highScores.slice(0, 5);
+  localStorage.setItem('wg_scores', JSON.stringify(highScores));
+  renderLeaderboard();
+  closeOverlay();
+}
+
+function closeOverlay() {
+  document.getElementById('overlay').classList.remove('show');
+  newGame();
+}
+
+function renderLeaderboard() {
+  const lb = document.getElementById('lbBody');
+  if (!highScores.length) { lb.innerHTML = '<div class="lb-empty">No scores yet</div>'; return; }
+  lb.innerHTML = highScores.map((s, i) =>
+    `<div class="lb-row"><span class="lb-rank">${['🥇','🥈','🥉','4.','5.'][i]}</span><span class="lb-name">${s.name}</span><span class="lb-score">${s.score}</span></div>`
+  ).join('');
+}
+
+function newGame() {
+  score = 0; wordCount = 0; foundWords = [];
+  shufflesLeft = MAX_SHUFFLES;
+  usedTiles.clear();
+  document.getElementById('wordInput').value = '';
+  document.getElementById('playerName').value = '';
+  document.getElementById('foundWords').innerHTML = '<span style="font-size:0.8rem;color:#a8dabc">None yet — go!</span>';
+  document.getElementById('msg').textContent = '';
+  updateDisplay();
+  updateShuffleBtn();
+  makeTiles();
+  renderTiles();
+  gameActive = true;
+  startTimer();
+}
+
+document.getElementById('wordInput').addEventListener('input', e => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z]/g, '');
+});
+document.getElementById('wordInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitWord();
+  if (e.key === 'Backspace' && e.target.value === '') { usedTiles.clear(); renderTiles(); }
+});
+
+renderLeaderboard();
+newGame();
+</script>
+</body>
+</html>
